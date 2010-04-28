@@ -608,7 +608,7 @@ EOF
 
 file "app/models/notifier_mailer.rb", <<-EOF
 class NotifierMailer < ActionMailer::Base
-  default_url_options[:host] = "http://localhost:3000
+  default_url_options[:host] = "http://localhost:3000"
 
   def password_reset_instructions(#{ user_variable_name })
     subject       '[SITE_NAME] Password Reset Instructions'
