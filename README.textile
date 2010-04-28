@@ -38,5 +38,6 @@ h2. Post Installation Instructions/notes
   end
   </code></pre>
 2. Edit database.yml to add database name , username, userpassword
-3. rake db:setup
-4. rake gems:install
+3. rake gems:install
+4. rake db:create
+5. rake db:migrate

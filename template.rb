@@ -727,6 +727,9 @@ if yes?("\nWould you like to install Paperclip/AttachmentFu for attachment manag
   end
 end
 
+git :add => "."
+git :commit => "-m 'Added some useful gems/plugins.'"
+
 
 
 puts "\n==============================================================================================="
