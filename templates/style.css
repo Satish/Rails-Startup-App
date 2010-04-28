@@ -1,0 +1,38 @@
+*{ font-family: "Verdana", Georgia, Palatino, 'Palatino Linotype', Times, 'Times New Roman', serif; }
+body { font-size: 13px; color: #333; width: 1000px; margin: 0px auto; }
+a { color: #20C; text-decoration: none }
+.clear { clear: both; }
+.right { float: right; }
+.left { float: left; }
+
+/* ################# Header ###################### */
+#header { overflow:hidden; padding: 10px 0px 20px 0px; border-bottom: 1px solid }
+#header #logoContainer { float:left; width: 50%; }
+#header #logoContainer .logo { font-size: 40px; }
+#header ul.topBar { float:right; width: 50%; text-align: right; }
+#header ul.topBar li { float:right; padding: 0px 5px; }
+#header ul.topBar li.first { border: 0px; }
+#header ul.topBar li { border-left: 1px solid }
+
+/* ################# Navigation Links ###################### */
+.navigation { padding: 10px 0px; }
+.navigation ul { font-size: 20px; }
+
+/* ################# Footer ###################### */
+#footer { margin-top:70px; border-top:1px solid #AAAAAA; background-color: #eee; padding: 10px 20px; overflow:hidden; color: #000; }
+#footer .credit { float:right; }
+
+
+.flash{ margin: 10px auto;	padding: 10px; overflow:hidden; }
+#flash_notice, #flash_error, #flash_warning, #flash_info, #flash_message{ margin: 10px auto; border-top: 1px solid #FFCC00; border-bottom: 1px solid #FFCC00; width: 98%; background-color: #EEEEEE; }
+#flash_message { color:green; border-color: green; }
+#flash_error { color: red; border-color: red; }
+#flash_notice, #flash_info{ color: #FF9D1C; border-color: #FF9D1C; }
+
+#errorExplanation { color: #000; width: 500px; margin: 20px 0px; overflow: hidden; line-height: 20px; border: 1px solid #bbb; }
+#errorExplanation h2 { margin:0; color: #fff !important; padding: 5px; font-size: 14px; font-weight: normal; background-color: #CC0000; border-bottom: 1px solid #bbb; font-weight: bold; }
+#errorExplanation p { padding: 5px; font-size: 14px; margin-top: 10px; }
+#errorExplanation ul li { width: 92%; font-size: 12px; list-style: square; margin: 2px 10px 2px 30px; background: none !important; padding-left: 0; }
+.fieldWithErrors input, .fieldWithErrors textarea, .fieldWithErrors select  { padding: 2px; border: 3px solid red !important; }
+
+.pageHeading { font-size: 20px; padding: 5px 0px; }

@@ -1,0 +1,42 @@
+h1. Rails Startup Template
+
+This template lets you to create quickly new Rails applications using Rails 2.x.x. To use it, just specify the -m switch when creating a Rails application:
+
+<pre><code>rails new_app_name -m http://github.com/Satish/Rails-Startup-App/raw/master/template.rb</code></pre>
+
+h2. Generated Application
+
+Here's a list of what this template sets up:
+
+h4. Rails
+  * "Authlogic":http://github.com/binarylogic/authlogic/tree/master for user authentication, including password resets.
+  * "Declarative Authorization":http://github.com/stffn/declarative_authorization for authorization mechanism.
+
+h4. Javascript
+* Choice of "Prototype":http://www.prototypejs.org or "jQuery":http://jquery.com or "MooTools":http://mootools.net/.
+
+h4. SCM
+* git repository.
+
+h4. Testing
+* TODO
+
+h4. Some other useful gems/plugins such as:
+  * "Will Paginate":http://github.com/mislav/will_paginate/tree/master for pagination.
+  * "HoptoadNotifier":http://github.com/thoughtbot/hoptoad_notifier.git for error tracking.
+  * "Paperclip":http://github.com/thoughtbot/paperclip/tree/master  Or 'AttachmentFu':http://github.com/technoweenie/attachment_fu for attachment management.
+
+h2. Post Installation Instructions/notes
+
+1. Please update application routes.rb if any of the generated controller is in namespace.
+    Example: for controller: admin/users_controller.rb,  routes should be as bellow
+  <pre><code>
+  map.namespace :admin do |admin|
+  admin.with_options :controller => :users do |controller|
+    controller.signup '/signup', :action => :new, :conditions => { :method => :get }
+    controller.resource :user, :only => [:show, :create, :edit, :update]
+  end
+  </code></pre>
+2. Edit database.yml to add database name , username, userpassword
+3. rake db:setup
+4. rake gems:install
