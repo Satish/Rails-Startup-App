@@ -52,6 +52,42 @@ run %{ find . -type d -empty | grep -v ".git" | xargs -I xxx touch xxx/.gitignor
 run "cp config/database.yml config/database.yml.example"
 
 puts "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+puts "Database support"
+puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
+database_yml= YAML.load_file(File.join('config', 'database.yml')).symbolize_keys
+development_config = database_yml[:development].symbolize_keys
+
+unless development_config[:adapter] =~ /sqlite/
+  db_name, db_username, db_password = development_config[:database], development_config[:username], development_config[:password]
+
+  asked_db_name = ask( "\nPlease enter the development database name (default: #{ db_name })")
+
+  asked_db_username = ask("\nPlease enter the database username (default: #{ db_username })")
+  db_username = asked_db_username if asked_db_username.present?
+
+  asked_db_password = ask("\nPlease enter the database password (default: #{ db_password })")
+  db_password = asked_db_password if asked_db_password.present?
+
+  #Replace database name in database.yml
+  if db_name != asked_db_name
+    gsub_file "config/database.yml", /(#{ Regexp.escape("database: #{ db_name }") })/mi do |match|
+      "database: #{ asked_db_name }"
+    end
+  end
+
+  #Replace database username in database.yml
+  gsub_file "config/database.yml", /(#{ Regexp.escape("username: root") })/mi do |match|
+    "username: #{ db_username }"
+  end
+
+  #Replace database password in database.yml
+  gsub_file "config/database.yml", /(#{ Regexp.escape("password:") })/mi do |match|
+   "password: #{ db_password }"
+  end
+end
+
+puts "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 puts "Choose Sessions storage option default to cookie"
 puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
@@ -62,7 +98,7 @@ end
 
 #Initial commit
 git :add => "."
-git :commit => "-m 'Initial commit'"
+git :commit => "-a -m 'Initial commit'"
 
 puts "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 puts "Choose Javascript Framework"
@@ -84,8 +120,10 @@ end
 
 if ['2', '3'].include?(asked_js_framework)
   git :add => "."
-  git :commit => "-m 'Javascript framework Prototype Replaced with #{ asked_js_framework == '2' ? 'jQuery' : 'MooTools' }'"
+  git :commit => "-a -m 'Javascript framework Prototype Replaced with #{ asked_js_framework == '2' ? 'jQuery' : 'MooTools' }'"
 end
+
+sudo = yes?("\nDo you want to use sudo to install gems(y/n)?")
 
 puts "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 puts "Install Authlogic Plugin/Gem"
@@ -94,6 +132,7 @@ ask_authlogic = ask("\nWhat option would you like to use for authlogic ( default
 case ask_authlogic
 when '1'
   gem 'authlogic', :source => 'http://gemcutter.org'
+  rake "gems:install", :sudo => sudo
 else
   plugin 'authlogic', :git => "git://github.com/binarylogic/authlogic.git"
 end
@@ -510,7 +549,7 @@ route <<-END
 END
 
 git :add => "."
-git :commit => "-m 'Added authlogic authentication'"
+git :commit => "-a -m 'Added authlogic authentication'"
 
 puts "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 puts "Generate Code for Password Reset Functionality"
@@ -608,7 +647,7 @@ EOF
 
 file "app/models/notifier_mailer.rb", <<-EOF
 class NotifierMailer < ActionMailer::Base
-  default_url_options[:host] = "http://localhost:3000"
+  default_url_options[:host] = Rails.env.production? ? HOST_NAME : "http://localhost:3000"
 
   def password_reset_instructions(#{ user_variable_name })
     subject       '[SITE_NAME] Password Reset Instructions'
@@ -635,7 +674,7 @@ EOF
 route "map.resource :#{ password_reset_controller_file_name.singularize }, :except => [:index, :show, :destroy]"
 
 git :add => "."
-git :commit => "-m 'Added password reset functionality.'"
+git :commit => "-a -m 'Added password reset functionality.'"
 
 end
 
@@ -648,6 +687,7 @@ if yes?("\nWould you like to implement authorization functionality(y/n)?")
   case authorization_install_options
   when '2'
     gem "declarative_authorization"
+    rake "gems:install", :sudo => sudo
   when '3'
     puts "declarative_authorization skipped"
   else
@@ -669,7 +709,7 @@ if yes?("\nWould you like to implement authorization functionality(y/n)?")
     file "config/authorization_rules.rb", download_file("authorization_rules.rb")
   
     git :add => "."
-    git :commit => "-m 'Added authorization functionality.'"
+    git :commit => "-a -m 'Added authorization functionality.'"
   end
 end
 
@@ -701,7 +741,11 @@ if yes?("\nWould you like to install HoptoadNotifier (y/n)?")
   end
   unless hoptoad_notifier_install_options == '3'
      hoptoad_notifier_api_key = ask("\nPlease enter your hoaptoad notifier key")
-     generate "hoptoad --api-key #{ hoptoad_notifier_api_key }"
+     initializer "hoptoad.rb",  "#{ "require 'hoptoad_notifier/rails'\n" if Rails::VERSION::MAJOR < 3 && Rails::VERSION::MINOR < 2 }HoptoadNotifier.configure do |config|
+  config.api_key = '#{ hoptoad_notifier_api_key }'
+end"
+  #rake "gems:install", :sudo => sudo
+  #generate "hoptoad --api-key #{ hoptoad_notifier_api_key }"
   end
 end
 
@@ -728,9 +772,143 @@ if yes?("\nWould you like to install Paperclip/AttachmentFu for attachment manag
 end
 
 git :add => "."
-git :commit => "-m 'Added some useful gems/plugins.'"
+git :commit => "-a -m 'Added some useful gems/plugins.'"
 
+puts "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+puts "Freeze Latest Rails"
+puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
+if yes?("\nWould you like to freeze the latest Rails?(y/n)")
+  freeze!
+  git :add => "."
+  git :commit => "-a -m 'Rails Freezed'"
+end
+
+puts "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+puts "Capify application"
+puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+
+if yes?("\nWill you be using Capistrano to deploy your application?(y/n)")
+  capify!
+  file "config/deploy.rb", <<-EOF
+# USAGE: cap staging/production CAPISTRANO TASK
+# Example: cap staging deploy:setup
+
+set :application, "set your application name here"
+set :repository,  "set your repository location here"
+set :keep_releases, 5
+set :scm, :git
+set :branch, 'master'
+set :user, 'rails'
+set :use_sudo, false
+default_run_options[:pty] = true
+ssh_options[:forward_agent] = true
+set :deploy_via, :remote_cache
+set :git_shallow_clone, 1
+set :git_enable_submodules, 1
+
+set :sql_user, 'deploy'     # User which will have all permission on above database
+set :sql_pass, 'deploy'     # Password for above user
+
+desc "this task will set credentials for staging server"
+task :staging do
+  role :web, "your web-server here"  # Your HTTP server, Apache/etc
+  role :app, "your app-server here"   # This may be the same as your `Web` server
+  role :db,  "your primary db-server here", :primary => true   # This is where Rails migrations will run
+  role :db,  "your slave db-server here"
+
+  set :domain, 'set your staging domain name here'
+  set :rails_env, :staging
+  set :application, "set your staging application name here"
+  set :deploy_to, "/home/#{'#{ user }'}/websites/#{ '#{ application }' }"
+  set :database, "#{'#{ application }' }"
+end
+
+desc "this task will set credentials for beta site"
+task :production do
+  role :web, "your web-server here"  # Your HTTP server, Apache/etc
+  role :app, "your app-server here"   # This may be the same as your `Web` server
+  role :db,  "your primary db-server here", :primary => true   # This is where Rails migrations will run
+  role :db,  "your slave db-server here"
+
+  set :rails_env, :production
+  set :domain, 'set your production domain name here'
+  set :application, "set your production application name here"
+  set :deploy_to, "/home/#{ '#{ user }' }/websites/#{ '#{ application }' }"
+  set :database, "#{ '#{ application }' }"
+end
+
+namespace :deploy do
+
+  desc "create database.yml in capistrano shared directory."
+  task :create_database_yml, :roles => :app do
+db = <<-CMD
+production:
+  adapter: mysql
+  database: #{ '#{ database }' }
+  username: #{ '#{ sql_user }' }
+  password: #{ '#{ sql_pass }' }
+  host: localhost
+  encoding: utf8
+CMD
+     put db, "#{  '#{ shared_path }' }/database.yml"
+  end
+
+  desc "Restarting mod_rails with restart.txt"
+  task :restart, :roles => :app, :except => { :no_release => true } do
+    run "touch #{ '#{ current_path  }' }/tmp/restart.txt"
+  end
+
+  [:start, :stop].each do |t|
+    desc "#{ '#{ t }' } task is a no-op with mod_rails"
+    task t, :roles => :app do ; end
+  end
+
+  task :after_symlink, :roles => :app do
+    run "ln -nfs #{ '#{ shared_path }' }/database.yml #{ '#{ current_path }' }/config/database.yml"
+  end
+
+  task :after_setup, :roles => :app do
+    transaction do
+      create_database_yml
+      db_setup
+    end
+  end
+
+  desc "Long deploy will throw up the maintenance.html page and run migrations then it restarts and enables the site again."
+  task :long do
+    transaction do
+      update_code
+      web.disable
+      symlink
+      migrate
+    end
+    restart
+    web.enable
+    cleanup
+  end
+
+  desc "create a DB named :database, grant permission to a user :sql_user with password :sql_pass"
+  task :db_setup , :roles => :app do
+    sudo "mysqladmin create #{ '#{ database }' } -uUSERNAME -pPASSWORD"
+    sudo "mysql -uUSERNAME -pPASSWORD -e \\"grant all on #{ '#{ database }' }.* to #{ '#{ sql_user }'  }@localhost identified by '#{ '#{ sql_pass }' }' \\" "
+    puts "#####################################################################\\n"
+    puts "Databases '#{ '#{ database }' }' created:"
+    puts "User    : '#{ '#{ sql_user }' }'"
+    puts "Password: '#{ '#{ sql_pass }' }'"
+    puts "\\n#####################################################################"
+  end
+
+end
+EOF
+
+  git :add => "."
+  git :commit => "-a -m 'application capified'"
+end
+
+rake "gems:install", :sudo => sudo
+rake "db:create"
+rake "db:migrate"
 
 puts "\n==============================================================================================="
 puts "#                                                                                             #"
@@ -745,13 +923,5 @@ puts "#      admin.with_options :controller => :users do |controller|           
 puts "#      controller.signup '/signup', :action => :new, :conditions => { :method => :get }       #"
 puts "#      controller.resource :user, :only => [:show, :create, :edit, :update]                   #"
 puts "#    end                                                                                      #"
-puts "#                                                                                             #"
-puts "#  2. Edit database.yml to add database name , username, userpassword                         #"
-puts "#                                                                                             #"
-puts "#  3. rake gems:install                                                                       #"
-puts "#                                                                                             #"
-puts "#  4. rake db:create                                                                          #"
-puts "#                                                                                             #"
-puts "#  5. rake db:migrate                                                                         #"
 puts "#                                                                                             #"
 puts "==============================================================================================="

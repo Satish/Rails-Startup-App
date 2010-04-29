@@ -4,3 +4,4 @@ UNAUTHORIZED_ERROR_MESSAGE = "You aren't authorized to perform the action you ju
 
 NOTIFICATIONS_EMAIL = "notifications@exapmle.com"
 SITE_NAME = "SITE NAME"
+HOST_NAME = "http://example.com"
